@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Buscar/Registrar Usuário</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #userInfo, #registerForm { margin-top: 20px; }
+    .hidden { display: none; }
+  </style>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h2>BUSCAR USUÁRIO POR ID</h2>
+  <form id="searchForm">
+    <input type="number" id="userIdInput" placeholder="Digite o ID do usuário" required>
+    <button type="submit">Buscar</button>
+  </form>
+
+  <button id="newUserBtn" style="margin-top: 15px;">Adicionar Novo Usuário</button>
+
+  <div id="userInfo" class="hidden">
+    <h3>Informações do Usuário</h3>
+    <p><strong>Nome:</strong> <span id="userName"></span></p>
+    <p><strong>Email:</strong> <span id="userEmail"></span></p>
+    <p><strong>Cidade:</strong> <span id="userCity"></span></p>
+    <button onclick="deleteUser()">Excluir Registro</button>
+  </div>
+
+  <div id="registerForm" class="hidden">
+    <h3>Registrar Usuário</h3>
+    <form id="createUserForm">
+      <input type="number" id="newId" placeholder="ID desejado" required><br>
+      <input type="text" id="newName" placeholder="Nome" required><br>
+      <input type="email" id="newEmail" placeholder="Email" required><br>
+      <input type="text" id="newCity" placeholder="Cidade" required><br>
+      <button type="submit">Registrar</button>
+    </form>
+  </div>
+
+  <script>
+    const searchForm = document.getElementById('searchForm');
+    const createUserForm = document.getElementById('createUserForm');
+    const userInfo = document.getElementById('userInfo');
+    const registerForm = document.getElementById('registerForm');
+    const newUserBtn = document.getElementById('newUserBtn');
+    let currentId = null;
+
+    // Buscar por ID
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      currentId = document.getElementById('userIdInput').value;
+      const apiUrl = `https://jsonplaceholder.typicode.com/users/${currentId}`;
+
+      try {
+        const response = await fetch(apiUrl);
+
+        if (response.ok) {
+          const user = await response.json();
+          showUser(user.name, user.email, user.address.city);
+          return;
+        }
+
+        // Verifica se o ID está no localStorage
+        const localUser = localStorage.getItem(`user_${currentId}`);
+        if (localUser) {
+          const user = JSON.parse(localUser);
+          showUser(user.name, user.email, user.city);
+        } else {
+          showRegisterForm(currentId); // oferta para registrar com este ID
+        }
+      } catch (err) {
+        console.error("Erro na busca", err);
+      }
+    });
+
+    // Cadastrar novo usuário
+    createUserForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('newId').value;
+      const name = document.getElementById('newName').value;
+      const email = document.getElementById('newEmail').value;
+      const city = document.getElementById('newCity').value;
+
+      // Verifica se o ID já existe na API
+      const apiResponse = await fetch(`https://jsonplaceholder.typicode.com/users/${id}`);
+      if (apiResponse.ok || localStorage.getItem(`user_${id}`)) {
+        alert("ID já existe. Escolha outro.");
+        return;
+      }
+
+      const newUser = { name, email, city };
+      localStorage.setItem(`user_${id}`, JSON.stringify(newUser));
+      currentId = id;
+
+      showUser(name, email, city);
+      registerForm.classList.add('hidden');
+    });
+
+    // Mostrar formulário de registro
+    function showRegisterForm(preFillId = '') {
+      document.getElementById('newId').value = preFillId;
+      registerForm.classList.remove('hidden');
+      userInfo.classList.add('hidden');
+    }
+
+    // Mostrar dados do usuário
+    function showUser(name, email, city) {
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userEmail').textContent = email;
+      document.getElementById('userCity').textContent = city;
+      userInfo.classList.remove('hidden');
+      registerForm.classList.add('hidden');
+    }
+
+    // Excluir usuário
+    function deleteUser() {
+      if (currentId) {
+        localStorage.removeItem(`user_${currentId}`);
+        alert("Registro excluído com sucesso!");
+        userInfo.classList.add('hidden');
+      }
+    }
+
+    // Botão "Adicionar Novo"
+    newUserBtn.addEventListener('click', () => {
+      currentId = null;
+      showRegisterForm('');
+    });
+  </script>
+</body>
+</html>
